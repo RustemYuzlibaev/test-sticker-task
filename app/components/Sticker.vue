@@ -27,10 +27,12 @@ async function fetchAvatars(): Promise<void> {
       useFetch(apiBaseUrl),
     ]);
 
-    const data = await Promise.all(responses.map((response) => response.data));
+    const data = await Promise.all(
+      responses.map((response) => response.data.value)
+    );
 
-    avatarSrcs.value = data.map((blob) =>
-      URL.createObjectURL(blob.value as Blob)
+    avatarSrcs.value = await Promise.all(
+      data.map(async (blob) => await blobToBase64(blob as Blob))
     );
 
     if (avatarSrcs.value.length) loading.value = false;
@@ -45,6 +47,15 @@ function expandSticker(): void {
 
 function giveAdvice(): void {
   navigateTo(consultServiceUrl, { external: true, open: "_blank" });
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
 }
 
 onMounted(async () => {
